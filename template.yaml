@@ -1,0 +1,356 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: bull14-backend - AI models, pricing, tools and GPU tracker
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - arm64
+
+Resources:
+
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub bull14-data-${AWS::AccountId}
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: CleanOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+
+  DataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub bull14-${AWS::AccountId}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: gsi1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  ModelsCollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/models-collector/
+      Description: Collects AI model metadata from HuggingFace and provider APIs
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily model metadata collection
+            Enabled: true
+
+  PricingCollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/pricing-collector/
+      Description: Scrapes pricing per token from all AI providers
+      Timeout: 180
+      MemorySize: 256
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily pricing scraping
+            Enabled: true
+
+  ToolsCollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/tools-collector/
+      Description: Collects framework and tool versions from GitHub, PyPI and npm
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily tools version collection
+            Enabled: true
+
+  HardwareCollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/hardware-collector/
+      Description: Collects GPU cloud pricing from vast.ai, RunPod and Lambda Labs
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily GPU pricing collection
+            Enabled: true
+
+  ChangelogFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/changelog/
+      Description: Generates changelog.json from DynamoDB CHANGE items
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+          EXPECTED_KEYS: "data/models.json,data/pricing.json,data/tools.json,data/hardware.json"
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        S3Trigger:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref DataBucket
+                object:
+                  key:
+                    - prefix: data/
+
+  AnalyticsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/analytics/
+      Description: Generates analytics.json — hype index, price tracker, breakeven
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(30 6 * * ? *)
+            Description: Daily analytics generation after collectors finish
+            Enabled: true
+
+  MetricsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: src/metrics/
+      Description: Generates pipeline metrics
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataBucket
+          TABLE_NAME: !Ref DataTable
+          CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:GetMetricStatistics
+                - lambda:ListFunctions
+                - cloudfront:CreateInvalidation
+              Resource: '*'
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(45 6 * * ? *)
+            Description: Daily metrics generation
+            Enabled: true
+
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${DataBucket.Arn}/data/*'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn': !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
+
+  DataOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'bull14-oac-${AWS::AccountId}'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  DataDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: bull14 data CDN
+        DefaultCacheBehavior:
+          TargetOriginId: DataBucketOrigin
+          ViewerProtocolPolicy: https-only
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref DataResponseHeadersPolicy
+        Origins:
+          - Id: DataBucketOrigin
+            DomainName: !GetAtt DataBucket.RegionalDomainName
+            OriginAccessControlId: !Ref DataOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+
+  DataResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub 'bull14-cors-${AWS::AccountId}'
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items: ['*']
+          AccessControlAllowMethods:
+            Items: [GET, HEAD]
+          AccessControlAllowOrigins:
+            Items:
+              - https://bull14.olcortesb.com
+          OriginOverride: true
+
+Outputs:
+  DataBucketName:
+    Value: !Ref DataBucket
+  DataDistributionUrl:
+    Value: !Sub 'https://${DataDistribution.DomainName}'
+  DataDistributionId:
+    Value: !Ref DataDistribution
+  DataTableName:
+    Value: !Ref DataTable
