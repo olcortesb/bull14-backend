@@ -1,0 +1,490 @@
+# tools_base.yaml
+# Curated capabilities for AI tools and frameworks.
+# Live data (version, stars, downloads) is fetched automatically.
+# Capabilities are updated manually on major releases only.
+# Last verified: 2026-09-02
+
+tools:
+
+  # ---------------------------------------------------------------------------
+  # Orchestration
+  # ---------------------------------------------------------------------------
+
+  - id: langchain
+    name: LangChain
+    category: orchestration
+    github: langchain-ai/langchain
+    pypi: langchain
+    description: "The original LLM orchestration framework. Chains, agents, memory and tool use."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: langgraph
+    name: LangGraph
+    category: orchestration
+    github: langchain-ai/langgraph
+    pypi: langgraph
+    description: "Graph-based orchestration with persistent state. LangChain evolution for complex cyclic agent workflows."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: true
+      graph_based: true
+      ui: false
+      self_hostable: true
+      cloud_hosted: true
+
+  - id: llamaindex
+    name: LlamaIndex
+    category: orchestration
+    github: run-llama/llama_index
+    pypi: llama-index
+    description: "Data framework for LLM apps. Specialized in RAG, document ingestion and structured retrieval."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: crewai
+    name: CrewAI
+    category: orchestration
+    github: crewAI-Inc/crewAI
+    github_use_tags: true
+    pypi: crewai
+    description: "Role-based multi-agent framework. Agents with defined roles collaborate on tasks."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: false
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: true
+
+  - id: autogen
+    name: AutoGen
+    category: orchestration
+    github: microsoft/autogen
+    pypi: pyautogen
+    description: "Microsoft multi-agent framework. Conversational agents that collaborate and self-correct."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: true
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: dspy
+    name: DSPy
+    category: orchestration
+    github: stanfordnlp/dspy
+    pypi: dspy-ai
+    description: "Stanford framework for programming (not prompting) LMs. Optimizes prompts and weights automatically."
+    capabilities:
+      streaming: false
+      async: false
+      local_models: true
+      vision: false
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: pydantic-ai
+    name: PydanticAI
+    category: orchestration
+    github: pydantic/pydantic-ai
+    pypi: pydantic-ai
+    description: "Type-safe agent framework built on Pydantic. Strict typing for agent inputs, outputs and tool calls."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: semantic-kernel
+    name: Semantic Kernel
+    category: orchestration
+    github: microsoft/semantic-kernel
+    pypi: semantic-kernel
+    npm: "@microsoft/semantic-kernel"
+    description: "Microsoft SDK for integrating LLMs into apps. Python, C# and Java. Enterprise-focused."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: true
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: vercel-ai-sdk
+    name: Vercel AI SDK
+    category: orchestration
+    github: vercel/ai
+    npm: ai
+    description: "TypeScript/Next.js standard for AI apps. Streaming UI, useChat/useCompletion hooks, multi-provider."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: false
+
+  # ---------------------------------------------------------------------------
+  # Infra / Runtime
+  # ---------------------------------------------------------------------------
+
+  - id: ollama
+    name: Ollama
+    category: runtime
+    github: ollama/ollama
+    description: "Run LLMs locally with one command. Model library, REST API, GPU support."
+    capabilities:
+      streaming: true
+      async: false
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: vllm
+    name: vLLM
+    category: runtime
+    github: vllm-project/vllm
+    pypi: vllm
+    description: "High-throughput inference server. PagedAttention, continuous batching, OpenAI-compatible API."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: tgi
+    name: TGI
+    category: runtime
+    github: huggingface/text-generation-inference
+    description: "HuggingFace production inference server. Flash Attention, tensor parallelism, quantization."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: sglang
+    name: SGLang
+    category: runtime
+    github: sgl-project/sglang
+    pypi: sglang
+    description: "Fast inference runtime with RadixAttention. Optimized for structured generation and long contexts."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: llama-cpp
+    name: llama.cpp
+    category: runtime
+    github: ggerganov/llama.cpp
+    description: "C++ inference for GGUF models. Runs on CPU, GPU, Apple Silicon. Minimal dependencies."
+    capabilities:
+      streaming: true
+      async: false
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: litellm
+    name: LiteLLM
+    category: runtime
+    github: BerriAI/litellm
+    pypi: litellm
+    description: "AI Gateway/Proxy. Unified API for 100+ LLMs with fallbacks, rate limiting and load balancing."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: true
+
+  - id: lm-studio
+    name: LM Studio
+    category: runtime
+    github: lmstudio-ai/lmstudio.js
+    description: "Desktop app to run local LLMs. GUI model browser, OpenAI-compatible local server."
+    capabilities:
+      streaming: true
+      async: false
+      local_models: true
+      vision: true
+      function_calling: true
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: false
+
+  # ---------------------------------------------------------------------------
+  # Eval
+  # ---------------------------------------------------------------------------
+
+  - id: ragas
+    name: RAGAS
+    category: eval
+    github: explodinggradients/ragas
+    pypi: ragas
+    description: "RAG evaluation framework. Faithfulness, answer relevancy, context precision metrics."
+    capabilities:
+      streaming: false
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: deepeval
+    name: DeepEval
+    category: eval
+    github: confident-ai/deepeval
+    pypi: deepeval
+    description: "LLM testing framework for CI/CD. 14+ metrics, pytest integration, hallucination detection."
+    capabilities:
+      streaming: false
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: true
+
+  - id: promptfoo
+    name: Promptfoo
+    category: eval
+    github: promptfoo/promptfoo
+    npm: promptfoo
+    npm_package: promptfoo
+    description: "CLI/CI tool for prompt testing. Compare models, detect regressions, red-teaming."
+    capabilities:
+      streaming: false
+      async: true
+      local_models: true
+      vision: true
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: braintrust
+    name: Braintrust
+    category: eval
+    pypi: braintrust
+    description: "Continuous eval platform. Experiments, datasets, scoring and production monitoring."
+    capabilities:
+      streaming: false
+      async: true
+      local_models: false
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: false
+      cloud_hosted: true
+
+  - id: opik
+    name: Opik
+    category: eval
+    github: comet-ml/opik
+    pypi: opik
+    description: "Comet ML open-source eval and tracing. LLM traces, experiments and production monitoring."
+    capabilities:
+      streaming: false
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: true
+
+  # ---------------------------------------------------------------------------
+  # Observability
+  # ---------------------------------------------------------------------------
+
+  - id: langsmith
+    name: LangSmith
+    category: observability
+    github: langchain-ai/langsmith-sdk
+    pypi: langsmith
+    description: "LangChain observability platform. Traces, datasets, evals and prompt management."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: false
+      cloud_hosted: true
+
+  - id: langfuse
+    name: Langfuse
+    category: observability
+    github: langfuse/langfuse
+    pypi: langfuse
+    npm: langfuse
+    description: "Open-source LLM observability. Traces, evals, prompt management. Self-hostable."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: true
+
+  - id: helicone
+    name: Helicone
+    category: observability
+    github: Helicone/helicone
+    npm: helicone
+    description: "LLM observability proxy. One-line integration, cost tracking, caching, rate limiting."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: false
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: true
+
+  - id: openllmetry
+    name: OpenLLMetry
+    category: observability
+    github: traceloop/openllmetry
+    pypi: opentelemetry-instrumentation-openai
+    description: "OpenTelemetry-based LLM tracing by Traceloop. Vendor-agnostic, works with any OTel backend."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: false
+      self_hostable: true
+      cloud_hosted: false
+
+  - id: arize-phoenix
+    name: Arize Phoenix
+    category: observability
+    github: Arize-ai/phoenix
+    pypi: arize-phoenix
+    description: "Open-source AI observability. Traces, evals, datasets. Works with OpenTelemetry and LlamaIndex."
+    capabilities:
+      streaming: true
+      async: true
+      local_models: true
+      vision: false
+      function_calling: false
+      stateful: false
+      graph_based: false
+      ui: true
+      self_hostable: true
+      cloud_hosted: true
