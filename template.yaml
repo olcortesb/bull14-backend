@@ -238,7 +238,10 @@ Resources:
                     - !Ref DataBucket
                 object:
                   key:
-                    - prefix: data/
+                    - suffix: models.json
+                    - suffix: pricing.json
+                    - suffix: tools.json
+                    - suffix: hardware.json
 
   AnalyticsFunction:
     Type: AWS::Serverless::Function
