@@ -1,0 +1,123 @@
+providers:
+  - id: lambda_labs
+    name: Lambda Labs
+    category: boutique_ml
+    url: https://lambdalabs.com/service/gpu-cloud
+    notes: Reserved and on-demand. No spot market.
+    gpus:
+      - gpu_type: H100 SXM5
+        vram_gb: 80
+        price_per_hour: 2.49
+        availability: available
+        interconnect: NVLink
+      - gpu_type: H100 PCIe
+        vram_gb: 80
+        price_per_hour: 1.99
+        availability: available
+        interconnect: PCIe
+      - gpu_type: A100 SXM4
+        vram_gb: 80
+        price_per_hour: 1.29
+        availability: limited
+        interconnect: NVLink
+      - gpu_type: A10
+        vram_gb: 24
+        price_per_hour: 0.60
+        availability: available
+        interconnect: PCIe
+      - gpu_type: RTX 6000 Ada
+        vram_gb: 48
+        price_per_hour: 0.80
+        availability: available
+        interconnect: PCIe
+
+  - id: coreweave
+    name: CoreWeave
+    category: ultra_scale
+    url: https://www.coreweave.com/gpu-cloud-computing
+    notes: Enterprise clusters. InfiniBand fabric. Requires contract for large scale.
+    gpus:
+      - gpu_type: H100 SXM5
+        vram_gb: 80
+        price_per_hour: 2.06
+        availability: available
+        interconnect: InfiniBand
+      - gpu_type: H100 NVL
+        vram_gb: 94
+        price_per_hour: 2.06
+        availability: available
+        interconnect: NVLink
+      - gpu_type: A100 SXM4
+        vram_gb: 80
+        price_per_hour: 2.06
+        availability: available
+        interconnect: InfiniBand
+      - gpu_type: A100 PCIe
+        vram_gb: 40
+        price_per_hour: 2.06
+        availability: available
+        interconnect: PCIe
+      - gpu_type: RTX A6000
+        vram_gb: 48
+        price_per_hour: 0.80
+        availability: available
+        interconnect: PCIe
+
+  - id: paperspace
+    name: Paperspace
+    category: developer
+    url: https://www.paperspace.com/gpu-cloud
+    notes: DigitalOcean-owned. Gradient notebooks + dedicated VMs. Simple MLOps.
+    gpus:
+      - gpu_type: H100 SXM5
+        vram_gb: 80
+        price_per_hour: 3.09
+        availability: available
+        interconnect: NVLink
+      - gpu_type: A100 SXM4
+        vram_gb: 80
+        price_per_hour: 3.09
+        availability: available
+        interconnect: NVLink
+      - gpu_type: A100 PCIe
+        vram_gb: 80
+        price_per_hour: 2.30
+        availability: available
+        interconnect: PCIe
+      - gpu_type: RTX 4000 Ada
+        vram_gb: 20
+        price_per_hour: 0.56
+        availability: available
+        interconnect: PCIe
+      - gpu_type: RTX 5000 Ada
+        vram_gb: 32
+        price_per_hour: 0.76
+        availability: available
+        interconnect: PCIe
+
+  - id: nebius
+    name: Nebius AI
+    category: boutique_ml
+    url: https://nebius.com/services/compute
+    notes: EU-based (Amsterdam/Paris). GDPR-compliant. Yandex spinoff.
+    gpus:
+      - gpu_type: H100 SXM5
+        vram_gb: 80
+        price_per_hour: 2.08
+        availability: available
+        interconnect: InfiniBand
+      - gpu_type: H200 SXM5
+        vram_gb: 141
+        price_per_hour: 3.20
+        availability: limited
+        interconnect: InfiniBand
+      - gpu_type: L40S
+        vram_gb: 48
+        price_per_hour: 1.20
+        availability: available
+        interconnect: PCIe
+      - gpu_type: L4
+        vram_gb: 24
+        price_per_hour: 0.45
+        availability: available
+        interconnect: PCIe
