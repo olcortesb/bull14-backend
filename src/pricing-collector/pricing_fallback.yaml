@@ -1,0 +1,109 @@
+# pricing_fallback.yaml
+# Providers and models NOT covered by OpenRouter, or where direct provider
+# pricing differs from OpenRouter's aggregated price.
+# All prices in USD per 1M tokens unless noted.
+# Last verified: 2026-09-02
+
+providers:
+
+  - id: google
+    name: Google
+    url: https://ai.google.dev/pricing
+    models:
+      - id: gemini-2.0-flash
+        input_per_1m: 0.10
+        output_per_1m: 0.40
+        cached_input_per_1m: 0.025
+      - id: gemini-2.0-flash-lite
+        input_per_1m: 0.075
+        output_per_1m: 0.30
+        cached_input_per_1m: null
+      - id: gemini-1.5-pro
+        input_per_1m: 1.25
+        output_per_1m: 5.00
+        cached_input_per_1m: 0.3125
+        context_tier:
+          threshold_tokens: 128000
+          above_input_per_1m: 2.50
+          above_output_per_1m: 10.00
+      - id: gemini-1.5-flash
+        input_per_1m: 0.075
+        output_per_1m: 0.30
+        cached_input_per_1m: 0.01875
+
+  - id: groq
+    name: Groq
+    url: https://groq.com/pricing
+    models:
+      - id: llama-3.3-70b-versatile
+        input_per_1m: 0.59
+        output_per_1m: 0.79
+      - id: llama-3.1-8b-instant
+        input_per_1m: 0.05
+        output_per_1m: 0.08
+      - id: deepseek-r1-distill-llama-70b
+        input_per_1m: 0.75
+        output_per_1m: 0.99
+      - id: gemma2-9b-it
+        input_per_1m: 0.20
+        output_per_1m: 0.20
+      - id: mixtral-8x7b-32768
+        input_per_1m: 0.24
+        output_per_1m: 0.24
+
+  - id: together-ai
+    name: Together AI
+    url: https://www.together.ai/pricing
+    models:
+      - id: meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo
+        input_per_1m: 0.18
+        output_per_1m: 0.18
+      - id: meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo
+        input_per_1m: 0.88
+        output_per_1m: 0.88
+      - id: meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo
+        input_per_1m: 3.50
+        output_per_1m: 3.50
+      - id: deepseek-ai/DeepSeek-R1
+        input_per_1m: 3.00
+        output_per_1m: 7.00
+      - id: Qwen/Qwen2.5-72B-Instruct-Turbo
+        input_per_1m: 1.20
+        output_per_1m: 1.20
+      - id: mistralai/Mistral-7B-Instruct-v0.3
+        input_per_1m: 0.20
+        output_per_1m: 0.20
+
+  - id: bedrock
+    name: AWS Bedrock
+    url: https://aws.amazon.com/bedrock/pricing/
+    models:
+      - id: amazon.nova-pro-v1
+        input_per_1m: 0.80
+        output_per_1m: 3.20
+        cached_input_per_1m: 0.20
+      - id: amazon.nova-lite-v1
+        input_per_1m: 0.06
+        output_per_1m: 0.24
+        cached_input_per_1m: 0.015
+      - id: amazon.nova-micro-v1
+        input_per_1m: 0.035
+        output_per_1m: 0.14
+        cached_input_per_1m: 0.00875
+      - id: anthropic.claude-sonnet-4
+        input_per_1m: 3.00
+        output_per_1m: 15.00
+        cached_input_per_1m: 0.30
+      - id: anthropic.claude-haiku-3-5
+        input_per_1m: 0.80
+        output_per_1m: 4.00
+        cached_input_per_1m: 0.08
+      - id: meta.llama3-1-70b-instruct
+        input_per_1m: 0.72
+        output_per_1m: 0.72
+      - id: meta.llama3-1-8b-instruct
+        input_per_1m: 0.22
+        output_per_1m: 0.22
+      - id: mistral.mistral-large-2402
+        input_per_1m: 4.00
+        output_per_1m: 12.00
