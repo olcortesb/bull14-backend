@@ -343,6 +343,8 @@ Resources:
           AccessControlAllowOrigins:
             Items:
               - https://bull14.olcortesb.com
+              - http://localhost:5173
+              - http://localhost:5174
           OriginOverride: true
 
 Outputs:
