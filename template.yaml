@@ -271,7 +271,15 @@ Resources:
                     Retry:
                       - ErrorEquals: [States.ALL]
                         MaxAttempts: 2
-                        IntervalSeconds: 10
+                        IntervalSeconds: 30
+                        BackoffRate: 2
+                    Catch:
+                      - ErrorEquals: [States.ALL]
+                        Next: ModelsSkipped
+                        ResultPath: $.error
+                    Next: ModelsSkipped
+                  ModelsSkipped:
+                    Type: Pass
                     End: true
               - StartAt: Pricing
                 States:
@@ -282,7 +290,15 @@ Resources:
                     Retry:
                       - ErrorEquals: [States.ALL]
                         MaxAttempts: 2
-                        IntervalSeconds: 10
+                        IntervalSeconds: 30
+                        BackoffRate: 2
+                    Catch:
+                      - ErrorEquals: [States.ALL]
+                        Next: PricingSkipped
+                        ResultPath: $.error
+                    Next: PricingSkipped
+                  PricingSkipped:
+                    Type: Pass
                     End: true
               - StartAt: Tools
                 States:
@@ -293,7 +309,15 @@ Resources:
                     Retry:
                       - ErrorEquals: [States.ALL]
                         MaxAttempts: 2
-                        IntervalSeconds: 10
+                        IntervalSeconds: 30
+                        BackoffRate: 2
+                    Catch:
+                      - ErrorEquals: [States.ALL]
+                        Next: ToolsSkipped
+                        ResultPath: $.error
+                    Next: ToolsSkipped
+                  ToolsSkipped:
+                    Type: Pass
                     End: true
               - StartAt: Hardware
                 States:
@@ -304,7 +328,15 @@ Resources:
                     Retry:
                       - ErrorEquals: [States.ALL]
                         MaxAttempts: 2
-                        IntervalSeconds: 10
+                        IntervalSeconds: 30
+                        BackoffRate: 2
+                    Catch:
+                      - ErrorEquals: [States.ALL]
+                        Next: HardwareSkipped
+                        ResultPath: $.error
+                    Next: HardwareSkipped
+                  HardwareSkipped:
+                    Type: Pass
                     End: true
             Next: Changelog
           Changelog:
@@ -314,7 +346,12 @@ Resources:
             Retry:
               - ErrorEquals: [States.ALL]
                 MaxAttempts: 2
-                IntervalSeconds: 10
+                IntervalSeconds: 30
+                BackoffRate: 2
+            Catch:
+              - ErrorEquals: [States.ALL]
+                Next: Analytics
+                ResultPath: $.error
             Next: Analytics
           Analytics:
             Type: Task
@@ -323,7 +360,12 @@ Resources:
             Retry:
               - ErrorEquals: [States.ALL]
                 MaxAttempts: 2
-                IntervalSeconds: 10
+                IntervalSeconds: 30
+                BackoffRate: 2
+            Catch:
+              - ErrorEquals: [States.ALL]
+                Next: Metrics
+                ResultPath: $.error
             Next: Metrics
           Metrics:
             Type: Task
@@ -332,7 +374,8 @@ Resources:
             Retry:
               - ErrorEquals: [States.ALL]
                 MaxAttempts: 2
-                IntervalSeconds: 10
+                IntervalSeconds: 30
+                BackoffRate: 2
             End: true
       Policies:
         - LambdaInvokePolicy:
