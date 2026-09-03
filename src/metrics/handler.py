@@ -7,15 +7,13 @@ import boto3
 
 BUCKET = os.environ["BUCKET_NAME"]
 TABLE = os.environ["TABLE_NAME"]
-CF_DIST = os.environ["CLOUDFRONT_DISTRIBUTION_ID"]
 
 s3 = boto3.client("s3")
-cf = boto3.client("cloudfront")
 cw = boto3.client("cloudwatch")
 ddb = boto3.resource("dynamodb").Table(TABLE)
 lmb = boto3.client("lambda")
 
-COLLECTORS = [
+COLLECTOR_PREFIXES = [
     "bull14-backend-ModelsCollectorFunction",
     "bull14-backend-PricingCollectorFunction",
     "bull14-backend-ToolsCollectorFunction",
@@ -24,6 +22,20 @@ COLLECTORS = [
     "bull14-backend-AnalyticsFunction",
     "bull14-backend-MetricsFunction",
 ]
+
+
+def _resolve_function_names():
+    """Resolve actual Lambda function names by matching prefixes."""
+    resolved = {}
+    paginator = lmb.get_paginator("list_functions")
+    for page in paginator.paginate():
+        for fn in page["Functions"]:
+            name = fn["FunctionName"]
+            for prefix in COLLECTOR_PREFIXES:
+                if name.startswith(prefix):
+                    resolved[prefix] = name
+                    break
+    return resolved
 
 
 def _cw_sum(fn_name, metric, days=7):
@@ -66,21 +78,25 @@ def lambda_handler(event, context):
     item_count = table_meta["Table"].get("ItemCount", 0)
 
     # Per-function metrics (last 7 days)
+    resolved = _resolve_function_names()
     functions = []
     total_invocations = 0
     total_errors = 0
-    for fn in COLLECTORS:
+    for prefix in COLLECTOR_PREFIXES:
+        fn = resolved.get(prefix, prefix)  # fallback to prefix if not found
         invocations = _cw_sum(fn, "Invocations")
         errors = _cw_sum(fn, "Errors")
         duration_avg = _cw_avg(fn, "Duration")
         total_invocations += invocations
         total_errors += errors
         functions.append({
-            "name": fn.replace("bull14-backend-", "").replace("Function", ""),
+            "name": prefix.replace("bull14-backend-", "").replace("Function", ""),
+            "full_name": fn,
             "invocations_7d": invocations,
             "errors_7d": errors,
             "avg_duration_ms": duration_avg,
             "error_rate": round(errors / invocations, 3) if invocations else 0,
+            "resolved": fn != prefix,
         })
 
     # S3 data file sizes
@@ -111,13 +127,5 @@ def lambda_handler(event, context):
 
     payload = json.dumps(metrics)
     s3.put_object(Bucket=BUCKET, Key="data/metrics.json", Body=payload, ContentType="application/json")
-    try:
-        cf.create_invalidation(
-            DistributionId=CF_DIST,
-            InvalidationBatch={"Paths": {"Quantity": 1, "Items": ["/data/metrics.json"]}, "CallerReference": datetime.now(timezone.utc).isoformat()},
-        )
-    except Exception as e:
-        print(f"CF invalidation skipped: {e}")
-
     print(f"Metrics: {total_invocations} invocations, {total_errors} errors (7d), {item_count} DDB items")
     return {"statusCode": 200, "body": "ok"}

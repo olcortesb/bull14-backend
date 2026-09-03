@@ -12,12 +12,10 @@ import boto3
 
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 TABLE_NAME = os.environ["TABLE_NAME"]
-CLOUDFRONT_DISTRIBUTION_ID = os.environ["CLOUDFRONT_DISTRIBUTION_ID"]
 GITHUB_TOKEN_SECRET_ARN = os.environ.get("GITHUB_TOKEN_SECRET_ARN", "")
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
-cloudfront = boto3.client("cloudfront")
 secretsmanager = boto3.client("secretsmanager")
 table = dynamodb.Table(TABLE_NAME)
 
@@ -66,6 +64,12 @@ def _fetch(url, timeout=10):
 # Live data fetchers
 # ---------------------------------------------------------------------------
 
+def _is_semver_tag(tag_name):
+    """Return True if tag looks like a semver release (v1.2.3 or 1.2.3)."""
+    import re
+    return bool(re.match(r'^v?\d+\.\d+', tag_name))
+
+
 def _github_live(repo, use_tags=False):
     """Fetch repo metadata + latest release/tag from GitHub public API."""
     repo_data = _fetch(f"{GITHUB_API}/repos/{repo}")
@@ -77,10 +81,13 @@ def _github_live(repo, use_tags=False):
     changelog_url = None
 
     if use_tags:
-        tags_data = _fetch(f"{GITHUB_API}/repos/{repo}/tags?per_page=1")
-        if tags_data and isinstance(tags_data, list) and tags_data:
-            version = tags_data[0].get("name", "").lstrip("v")
-            changelog_url = f"https://github.com/{repo}/releases/tag/{tags_data[0].get('name')}"
+        tags_data = _fetch(f"{GITHUB_API}/repos/{repo}/tags?per_page=20")
+        if tags_data and isinstance(tags_data, list):
+            semver_tags = [t for t in tags_data if _is_semver_tag(t.get("name", ""))]
+            if semver_tags:
+                tag = semver_tags[0]
+                version = tag.get("name", "").lstrip("v")
+                changelog_url = f"https://github.com/{repo}/releases/tag/{tag.get('name')}"
     else:
         release_data = _fetch(f"{GITHUB_API}/repos/{repo}/releases/latest")
         if release_data and not release_data.get("message"):
@@ -258,6 +265,11 @@ def lambda_handler(event, context):
         if base.get("github"):
             gh = _github_live(base["github"], use_tags=base.get("github_use_tags", False))
             entry.update(gh)
+            # Apply overrides from YAML
+            if base.get("license_override"):
+                entry["license"] = base["license_override"]
+            if "stars_override" in base:
+                entry["stars"] = base["stars_override"]
             time.sleep(0.3)  # GitHub rate limit: 60 req/hour unauthenticated
 
         # PyPI live data (version takes precedence over GitHub tag if available)
@@ -297,15 +309,6 @@ def lambda_handler(event, context):
         Key="data/tools.json",
         Body=json.dumps(payload, default=str),
         ContentType="application/json",
-    )
-
-    # CloudFront invalidation
-    cloudfront.create_invalidation(
-        DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
-        InvalidationBatch={
-            "Paths": {"Quantity": 1, "Items": ["/data/tools.json"]},
-            "CallerReference": str(int(time.time())),
-        },
     )
 
     print(f"tools.json written — {len(tools)} tools")

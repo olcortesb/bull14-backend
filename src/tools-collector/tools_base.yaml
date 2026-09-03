@@ -68,7 +68,6 @@ tools:
     name: CrewAI
     category: orchestration
     github: crewAI-Inc/crewAI
-    github_use_tags: true
     pypi: crewai
     description: "Role-based multi-agent framework. Agents with defined roles collaborate on tasks."
     capabilities:
@@ -161,6 +160,7 @@ tools:
     category: orchestration
     github: vercel/ai
     npm: ai
+    license_override: Apache-2.0
     description: "TypeScript/Next.js standard for AI apps. Streaming UI, useChat/useCompletion hooks, multi-provider."
     capabilities:
       streaming: true
@@ -270,6 +270,7 @@ tools:
     category: runtime
     github: BerriAI/litellm
     pypi: litellm
+    license_override: MIT
     description: "AI Gateway/Proxy. Unified API for 100+ LLMs with fallbacks, rate limiting and load balancing."
     capabilities:
       streaming: true
@@ -287,6 +288,7 @@ tools:
     name: LM Studio
     category: runtime
     github: lmstudio-ai/lmstudio.js
+    stars_override: null
     description: "Desktop app to run local LLMs. GUI model browser, OpenAI-compatible local server."
     capabilities:
       streaming: true
@@ -344,6 +346,7 @@ tools:
     name: Promptfoo
     category: eval
     github: promptfoo/promptfoo
+    github_use_tags: true
     npm: promptfoo
     npm_package: promptfoo
     description: "CLI/CI tool for prompt testing. Compare models, detect regressions, red-teaming."
@@ -362,7 +365,9 @@ tools:
   - id: braintrust
     name: Braintrust
     category: eval
+    github: brainlid/langchain
     pypi: braintrust
+    license_override: MIT
     description: "Continuous eval platform. Experiments, datasets, scoring and production monitoring."
     capabilities:
       streaming: false
@@ -422,6 +427,7 @@ tools:
     github: langfuse/langfuse
     pypi: langfuse
     npm: langfuse
+    license_override: MIT
     description: "Open-source LLM observability. Traces, evals, prompt management. Self-hostable."
     capabilities:
       streaming: true
@@ -476,6 +482,7 @@ tools:
     category: observability
     github: Arize-ai/phoenix
     pypi: arize-phoenix
+    license_override: Apache-2.0
     description: "Open-source AI observability. Traces, evals, datasets. Works with OpenTelemetry and LlamaIndex."
     capabilities:
       streaming: true

@@ -6,29 +6,23 @@ Live data at [bull14.olcortesb.com](https://bull14.olcortesb.com)
 
 ## How it works
 
-1. **EventBridge Schedules** trigger 4 collector Lambdas daily at 06:00 UTC in parallel
-2. Each collector writes a JSON file to S3 and persists state + change items to DynamoDB
-3. **S3 ObjectCreated → EventBridge → ChangelogFunction** — generates `changelog.json` once all 4 files are present
-4. **AnalyticsFunction** runs at 06:30 UTC — hype index, price tracker, breakeven calculator
-5. **MetricsFunction** runs at 06:45 UTC — pipeline health metrics
-6. **AWS Amplify** serves the frontend from CloudFront
+1. **EventBridge Schedule** triggers the **PipelineStateMachine** (Step Functions Express) daily at 06:00 UTC
+2. **Step Functions** runs 4 collectors in **parallel**, then Changelog → Analytics → Metrics in sequence
+3. Each **Collector** queries real APIs + static data → writes JSON to S3 + persists to DynamoDB
+4. **AWS Amplify** serves the frontend from CloudFront
 
 ```
-06:00 UTC ┌─ ModelsCollector    → HF API + curated base  → data/models.json
-          ├─ PricingCollector   → provider pricing pages → data/pricing.json
-          ├─ ToolsCollector     → GitHub + PyPI + npm    → data/tools.json
-          └─ HardwareCollector  → vast.ai + RunPod       → data/hardware.json
-                │
-                │ S3 ObjectCreated → EventBridge
-                ▼
-          ChangelogFunction    → DynamoDB CHANGE items  → data/changelog.json
-                │
-06:30 UTC       ▼
-          AnalyticsFunction    → hype index, breakeven  → data/analytics.json
-                │
-06:45 UTC       ▼
-          MetricsFunction      → CloudWatch + DynamoDB  → data/metrics.json
+06:00 UTC
+    │
+    ├── ModelsCollector   ─┐
+    ├── PricingCollector  ─┤ parallel (retry x2)
+    ├── ToolsCollector    ─┤
+    └── HardwareCollector ─┘
+              │
+         Changelog → Analytics → Metrics
 ```
+
+See [OPERATIONS.md](OPERATIONS.md) for manual commands, testing and troubleshooting.
 
 ## Data sources
 
@@ -83,9 +77,10 @@ gpu#vast-ai             GPU_OFFER#H100            GPU#vast-ai         2.49#H100
 ## Stack
 
 - AWS SAM, Python 3.12, arm64
+- Step Functions Express Workflow (pipeline orchestration)
 - DynamoDB on-demand, single-table
 - S3 (versioned) + CloudFront (OAC, HTTPS-only)
-- EventBridge Schedules
+- EventBridge Schedule (single trigger)
 
 ## Prerequisites
 
@@ -98,27 +93,20 @@ gpu#vast-ai             GPU_OFFER#H100            GPU#vast-ai         2.49#H100
 cp samconfig.toml samconfig.local.toml
 # edit samconfig.local.toml if needed
 
-sam build && sam deploy --config-file samconfig.local.toml
+./scripts/deploy.sh
 ```
 
 ## Invoke manually
 
 ```bash
-export AWS_PROFILE=<your-profile>
+# Full pipeline (recommended)
+./scripts/invoke.sh pipeline
 
-# List function names
-aws lambda list-functions --region us-east-1 \
-  --query 'Functions[?starts_with(FunctionName, `bull14`)].FunctionName' \
-  --output text
+# Individual function
+./scripts/invoke.sh models
 
-# Invoke a function
-aws lambda invoke \
-  --function-name <function-name> \
-  --region us-east-1 \
-  --log-type Tail \
-  --query 'LogResult' \
-  --output text \
-  /tmp/out.json | base64 -d
+# Fast code-only update (no CloudFormation)
+./scripts/update.sh models pricing
 ```
 
 ## Security
@@ -138,7 +126,7 @@ aws lambda invoke \
 | Lambda (7 functions, arm64) | $0.00 (free tier) |
 | DynamoDB (on-demand) | $0.00 (free tier) |
 | S3 (versioned) | $0.00 (free tier) |
-| EventBridge | $0.00 (free tier) |
+| Step Functions Express | $0.00 (free tier) |
 | CloudFront | $0.00 (free tier) |
 | Secrets Manager | $0.00 (no secrets yet) |
 

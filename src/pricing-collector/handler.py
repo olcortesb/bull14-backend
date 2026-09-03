@@ -11,11 +11,9 @@ import boto3
 
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 TABLE_NAME = os.environ["TABLE_NAME"]
-CLOUDFRONT_DISTRIBUTION_ID = os.environ["CLOUDFRONT_DISTRIBUTION_ID"]
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
-cloudfront = boto3.client("cloudfront")
 table = dynamodb.Table(TABLE_NAME)
 
 FALLBACK_PATH = Path(__file__).parent / "pricing_fallback.yaml"
@@ -41,7 +39,7 @@ def _to_1m(value):
     if value is None:
         return None
     f = float(value)
-    return round(f * 1_000_000, 6) if f > 0 else None
+    return round(f * 1_000_000, 4) if f > 0 else 0
 
 
 def _parse_openrouter(raw_models):
@@ -196,8 +194,10 @@ def _detect_changes(provider_id, model_id, previous, entry, provider_url):
     out = entry["pricing"]["standard"]["output_per_1m"]
 
     if not previous:
+        inp_str = f"${inp}" if inp is not None else "free"
+        out_str = f"${out}" if out is not None else "free"
         _put_change(provider_id, model_id, "pricing_added",
-                    f"{provider_id}/{model_id} added — input: ${inp}, output: ${out}/1M tokens",
+                    f"{provider_id}/{model_id} added — input: {inp_str}, output: {out_str}/1M tokens",
                     url=provider_url)
         return
 
@@ -281,15 +281,6 @@ def lambda_handler(event, context):
         Key="data/pricing.json",
         Body=json.dumps(payload, default=str),
         ContentType="application/json",
-    )
-
-    # 6. CloudFront invalidation
-    cloudfront.create_invalidation(
-        DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
-        InvalidationBatch={
-            "Paths": {"Quantity": 1, "Items": ["/data/pricing.json"]},
-            "CallerReference": str(int(time.time())),
-        },
     )
 
     print(f"pricing.json written — {len(output_providers)} providers, {total_models} models")

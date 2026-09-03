@@ -92,13 +92,6 @@ Resources:
               Action:
                 - cloudfront:CreateInvalidation
               Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
-      Events:
-        ScheduleEvent:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 6 * * ? *)
-            Description: Daily model metadata collection
-            Enabled: true
 
   PricingCollectorFunction:
     Type: AWS::Serverless::Function
@@ -123,13 +116,6 @@ Resources:
               Action:
                 - cloudfront:CreateInvalidation
               Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
-      Events:
-        ScheduleEvent:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 6 * * ? *)
-            Description: Daily pricing scraping
-            Enabled: true
 
   ToolsCollectorFunction:
     Type: AWS::Serverless::Function
@@ -160,13 +146,6 @@ Resources:
               Action:
                 - secretsmanager:GetSecretValue
               Resource: !Ref GitHubTokenSecretArn
-      Events:
-        ScheduleEvent:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 6 * * ? *)
-            Description: Daily tools version collection
-            Enabled: true
 
   HardwareCollectorFunction:
     Type: AWS::Serverless::Function
@@ -191,13 +170,6 @@ Resources:
               Action:
                 - cloudfront:CreateInvalidation
               Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
-      Events:
-        ScheduleEvent:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0 6 * * ? *)
-            Description: Daily GPU pricing collection
-            Enabled: true
 
   ChangelogFunction:
     Type: AWS::Serverless::Function
@@ -212,7 +184,7 @@ Resources:
           BUCKET_NAME: !Ref DataBucket
           TABLE_NAME: !Ref DataTable
           CLOUDFRONT_DISTRIBUTION_ID: !Ref DataDistribution
-          EXPECTED_KEYS: "data/models.json,data/pricing.json,data/tools.json,data/hardware.json"
+          EXPECTED_KEYS: ""
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref DataBucket
@@ -223,25 +195,6 @@ Resources:
               Action:
                 - cloudfront:CreateInvalidation
               Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
-      Events:
-        S3Trigger:
-          Type: EventBridgeRule
-          Properties:
-            Pattern:
-              source:
-                - aws.s3
-              detail-type:
-                - Object Created
-              detail:
-                bucket:
-                  name:
-                    - !Ref DataBucket
-                object:
-                  key:
-                    - suffix: models.json
-                    - suffix: pricing.json
-                    - suffix: tools.json
-                    - suffix: hardware.json
 
   AnalyticsFunction:
     Type: AWS::Serverless::Function
@@ -266,13 +219,6 @@ Resources:
               Action:
                 - cloudfront:CreateInvalidation
               Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
-      Events:
-        ScheduleEvent:
-          Type: Schedule
-          Properties:
-            Schedule: cron(30 6 * * ? *)
-            Description: Daily analytics generation after collectors finish
-            Enabled: true
 
   MetricsFunction:
     Type: AWS::Serverless::Function
@@ -303,12 +249,112 @@ Resources:
               Action:
                 - cloudfront:CreateInvalidation
               Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}'
+
+  PipelineStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub bull14-pipeline-v2-${AWS::AccountId}
+      Type: STANDARD
+      Definition:
+        Comment: bull14 daily data pipeline
+        StartAt: CollectorsParallel
+        States:
+          CollectorsParallel:
+            Type: Parallel
+            Branches:
+              - StartAt: Models
+                States:
+                  Models:
+                    Type: Task
+                    Resource: !GetAtt ModelsCollectorFunction.Arn
+                    TimeoutSeconds: 330
+                    Retry:
+                      - ErrorEquals: [States.ALL]
+                        MaxAttempts: 2
+                        IntervalSeconds: 10
+                    End: true
+              - StartAt: Pricing
+                States:
+                  Pricing:
+                    Type: Task
+                    Resource: !GetAtt PricingCollectorFunction.Arn
+                    TimeoutSeconds: 210
+                    Retry:
+                      - ErrorEquals: [States.ALL]
+                        MaxAttempts: 2
+                        IntervalSeconds: 10
+                    End: true
+              - StartAt: Tools
+                States:
+                  Tools:
+                    Type: Task
+                    Resource: !GetAtt ToolsCollectorFunction.Arn
+                    TimeoutSeconds: 150
+                    Retry:
+                      - ErrorEquals: [States.ALL]
+                        MaxAttempts: 2
+                        IntervalSeconds: 10
+                    End: true
+              - StartAt: Hardware
+                States:
+                  Hardware:
+                    Type: Task
+                    Resource: !GetAtt HardwareCollectorFunction.Arn
+                    TimeoutSeconds: 90
+                    Retry:
+                      - ErrorEquals: [States.ALL]
+                        MaxAttempts: 2
+                        IntervalSeconds: 10
+                    End: true
+            Next: Changelog
+          Changelog:
+            Type: Task
+            Resource: !GetAtt ChangelogFunction.Arn
+            TimeoutSeconds: 90
+            Retry:
+              - ErrorEquals: [States.ALL]
+                MaxAttempts: 2
+                IntervalSeconds: 10
+            Next: Analytics
+          Analytics:
+            Type: Task
+            Resource: !GetAtt AnalyticsFunction.Arn
+            TimeoutSeconds: 90
+            Retry:
+              - ErrorEquals: [States.ALL]
+                MaxAttempts: 2
+                IntervalSeconds: 10
+            Next: Metrics
+          Metrics:
+            Type: Task
+            Resource: !GetAtt MetricsFunction.Arn
+            TimeoutSeconds: 90
+            Retry:
+              - ErrorEquals: [States.ALL]
+                MaxAttempts: 2
+                IntervalSeconds: 10
+            End: true
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ModelsCollectorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PricingCollectorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ToolsCollectorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref HardwareCollectorFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ChangelogFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AnalyticsFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref MetricsFunction
       Events:
-        ScheduleEvent:
+        DailySchedule:
           Type: Schedule
           Properties:
-            Schedule: cron(45 6 * * ? *)
-            Description: Daily metrics generation
+            Schedule: cron(0 6 * * ? *)
+            Description: Daily pipeline trigger
             Enabled: true
 
   DataBucketPolicy:
@@ -380,3 +426,5 @@ Outputs:
     Value: !Ref DataDistribution
   DataTableName:
     Value: !Ref DataTable
+  PipelineStateMachineArn:
+    Value: !Ref PipelineStateMachine

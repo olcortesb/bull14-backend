@@ -49,12 +49,12 @@ providers:
         interconnect: NVLink
       - gpu_type: A100 SXM4
         vram_gb: 80
-        price_per_hour: 2.06
+        price_per_hour: 1.52
         availability: available
         interconnect: InfiniBand
       - gpu_type: A100 PCIe
         vram_gb: 40
-        price_per_hour: 2.06
+        price_per_hour: 1.28
         availability: available
         interconnect: PCIe
       - gpu_type: RTX A6000

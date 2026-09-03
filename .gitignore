@@ -1,5 +1,6 @@
 # Planning docs
 BULL14.md
+OPERATIONS.md
 
 # SAM
 .aws-sam/
@@ -12,3 +13,6 @@ __pycache__/
 
 # AWS
 .aws/
+
+# Scripts locales
+scripts/*

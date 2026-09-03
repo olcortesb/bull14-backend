@@ -8,11 +8,9 @@ import boto3
 
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 TABLE_NAME = os.environ["TABLE_NAME"]
-CLOUDFRONT_DISTRIBUTION_ID = os.environ["CLOUDFRONT_DISTRIBUTION_ID"]
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
-cloudfront = boto3.client("cloudfront")
 table = dynamodb.Table(TABLE_NAME)
 
 # ---------------------------------------------------------------------------
@@ -82,7 +80,7 @@ MODELS_BASE = [
         "context_window": 128000,
         "max_output": 4096,
         "modalities": ["text", "code"],
-        "license": "llama3",
+        "license": "Llama 3.1",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -100,7 +98,7 @@ MODELS_BASE = [
         "context_window": 128000,
         "max_output": 4096,
         "modalities": ["text", "code"],
-        "license": "llama3",
+        "license": "Llama 3.1",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -115,10 +113,10 @@ MODELS_BASE = [
         "provider": "mistral",
         "access": "both",
         "parameters": "7B",
-        "context_window": 32768,
+        "context_window": 32000,
         "max_output": 4096,
         "modalities": ["text", "code"],
-        "license": "apache-2.0",
+        "license": "Apache-2.0",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -136,7 +134,7 @@ MODELS_BASE = [
         "context_window": 128000,
         "max_output": 8192,
         "modalities": ["text", "code"],
-        "license": "mit",
+        "license": "MIT",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -151,10 +149,10 @@ MODELS_BASE = [
         "provider": "alibaba",
         "access": "both",
         "parameters": "72B",
-        "context_window": 131072,
+        "context_window": 128000,
         "max_output": 8192,
         "modalities": ["text", "code"],
-        "license": "qwen",
+        "license": "Qwen",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -172,7 +170,7 @@ MODELS_BASE = [
         "context_window": 16384,
         "max_output": 4096,
         "modalities": ["text", "code"],
-        "license": "mit",
+        "license": "MIT",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -187,10 +185,10 @@ MODELS_BASE = [
         "provider": "google",
         "access": "both",
         "parameters": "27B",
-        "context_window": 131072,
+        "context_window": 128000,
         "max_output": 8192,
         "modalities": ["text", "code", "vision"],
-        "license": "gemma",
+        "license": "Gemma",
         "commercial_use": True,
         "fine_tunable": True,
         "on_premise": True,
@@ -364,15 +362,6 @@ def lambda_handler(event, context):
         Key="data/models.json",
         Body=json.dumps(payload, default=str),
         ContentType="application/json",
-    )
-
-    # CloudFront invalidation
-    cloudfront.create_invalidation(
-        DistributionId=CLOUDFRONT_DISTRIBUTION_ID,
-        InvalidationBatch={
-            "Paths": {"Quantity": 1, "Items": ["/data/models.json"]},
-            "CallerReference": str(int(time.time())),
-        },
     )
 
     print(f"models.json written — {len(models)} models")

@@ -10,10 +10,8 @@ import yaml
 
 BUCKET = os.environ["BUCKET_NAME"]
 TABLE = os.environ["TABLE_NAME"]
-CF_DIST = os.environ["CLOUDFRONT_DISTRIBUTION_ID"]
 
 s3 = boto3.client("s3")
-cf = boto3.client("cloudfront")
 ddb = boto3.resource("dynamodb").Table(TABLE)
 
 BASE_DIR = os.path.dirname(__file__)
@@ -38,6 +36,9 @@ def _runpod_live():
         data = json.loads(r.read())
     gpus = []
     for t in data["data"]["gpuTypes"]:
+        # Skip entries with invalid gpu_type or vram
+        if not t.get("displayName") or not t.get("memoryInGb"):
+            continue
         secure = t.get("securePrice") or 0
         community = t.get("communityPrice") or 0
         lowest = t.get("lowestPrice") or {}
@@ -63,16 +64,20 @@ def _vastai_live():
     # Aggregate by gpu_name: min price, count offers
     agg = {}
     for o in data.get("offers", []):
-        name = o.get("gpu_name", "Unknown")
+        name = o.get("gpu_name", "")
+        if not name or not o.get("gpu_ram"):
+            continue
         dph = o.get("dph_total") or 0
         num = o.get("num_gpus") or 1
         price_per_gpu = round(dph / num, 4) if num else dph
+        interruptible = not o.get("rented", False)
         if name not in agg or price_per_gpu < agg[name]["price_per_hour"]:
             agg[name] = {
                 "gpu_type": name,
                 "vram_gb": round((o.get("gpu_ram") or 0) / 1024),
                 "price_per_hour": price_per_gpu,
                 "reliability": round(o.get("reliability2") or 0, 3),
+                "interruptible": interruptible,
                 "availability": "available",
                 "interconnect": None,
             }
@@ -92,13 +97,19 @@ def _detect_changes(provider_id, gpus_now):
         if prev:
             price_prev = str(prev.get("price_per_hour", ""))
             if price_prev and price_prev != price_now:
+                try:
+                    prev_f = float(price_prev)
+                    now_f = float(price_now)
+                    change_type = "price_dropped" if now_f < prev_f else "price_increased"
+                except ValueError:
+                    change_type = "price_change"
                 h = hashlib.md5(f"{provider_id}{gpu_key}{today}".encode()).hexdigest()[:6]
                 changes.append({
                     "pk": f"gpu#{provider_id}",
                     "sk": f"CHANGE#{today}#{h}",
                     "gsi1pk": f"CHANGE#hardware",
                     "gsi1sk": f"{today}#{provider_id}",
-                    "type": "price_change",
+                    "type": change_type,
                     "provider": provider_id,
                     "gpu_type": gpu["gpu_type"],
                     "price_prev": Decimal(price_prev),
@@ -201,14 +212,6 @@ def lambda_handler(event, context):
 
     payload = json.dumps(result, default=_serial)
     s3.put_object(Bucket=BUCKET, Key="data/hardware.json", Body=payload, ContentType="application/json")
-    try:
-        cf.create_invalidation(
-            DistributionId=CF_DIST,
-            InvalidationBatch={"Paths": {"Quantity": 1, "Items": ["/data/hardware.json"]}, "CallerReference": datetime.now(timezone.utc).isoformat()},
-        )
-    except Exception as e:
-        print(f"CF invalidation skipped: {e}")
-
     total_gpus = sum(len(v["gpus"]) for v in result.values())
     print(f"Hardware: {len(result)} providers, {total_gpus} GPU offers")
     return {"statusCode": 200, "body": f"{len(result)} providers, {total_gpus} GPU offers"}

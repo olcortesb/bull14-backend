@@ -8,11 +8,9 @@ from boto3.dynamodb.conditions import Key
 
 BUCKET = os.environ["BUCKET_NAME"]
 TABLE = os.environ["TABLE_NAME"]
-CF_DIST = os.environ["CLOUDFRONT_DISTRIBUTION_ID"]
 EXPECTED_KEYS = os.environ.get("EXPECTED_KEYS", "").split(",")
 
 s3 = boto3.client("s3")
-cf = boto3.client("cloudfront")
 ddb = boto3.resource("dynamodb").Table(TABLE)
 
 DOMAINS = ["models", "pricing", "tools", "hardware"]
@@ -65,13 +63,5 @@ def lambda_handler(event, context):
 
     payload = json.dumps(changelog, default=_serial)
     s3.put_object(Bucket=BUCKET, Key="data/changelog.json", Body=payload, ContentType="application/json")
-    try:
-        cf.create_invalidation(
-            DistributionId=CF_DIST,
-            InvalidationBatch={"Paths": {"Quantity": 1, "Items": ["/data/changelog.json"]}, "CallerReference": datetime.now(timezone.utc).isoformat()},
-        )
-    except Exception as e:
-        print(f"CF invalidation skipped: {e}")
-
     print(f"Changelog: {total} total changes across {len(DOMAINS)} domains")
     return {"statusCode": 200, "body": f"{total} changes"}
