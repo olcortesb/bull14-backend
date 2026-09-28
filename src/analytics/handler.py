@@ -56,12 +56,15 @@ def _price_trends(changelog):
     pricing_changes = changelog.get("pricing", [])
     trends = {}
     for c in pricing_changes:
-        if c.get("type") not in ("price_change", "price_dropped", "price_increased"):
+        if c.get("type") not in ("price_change", "price_changed", "price_dropped", "price_increased"):
             continue
-        # Key by provider/model from gsi1sk: date#provider#model
-        gsi1sk = c.get("gsi1sk", "")
-        parts = gsi1sk.split("#")
-        mid = "#".join(parts[1:]) if len(parts) >= 2 else c.get("pk", "unknown").replace("pricing#", "")
+        # Extract model key from detail: "~provider/model field: ..."
+        detail = c.get("detail", "")
+        mid = "unknown"
+        if detail:
+            part = detail.split(" ")[0].lstrip("~")
+            if "/" in part:
+                mid = part  # provider/model
         old_val = c.get("old_value")
         new_val = c.get("new_value")
         try:
@@ -71,10 +74,17 @@ def _price_trends(changelog):
             prev, now = None, None
         if prev is None or now is None:
             continue
+        # Extract field (input/output) from detail
+        field = None
+        if " input:" in detail:
+            field = "input"
+        elif " output:" in detail:
+            field = "output"
         if mid not in trends:
             trends[mid] = []
         trends[mid].append({
             "date": c.get("date"),
+            "field": field,
             "prev": prev,
             "now": now,
             "pct": round((now - prev) / prev * 100, 1) if prev else None,
